@@ -1,0 +1,16 @@
+name: pintire
+version: 0.1.0
+description: Automatically capture dirty changes to a shadow branch after tool use.
+hooks:
+  before_agent_start:
+    # Capture the user's prompt to use as a commit message
+    # PI_PROMPT is provided by the agent environment
+    script: ./pintire.sh save_prompt "$PI_PROMPT"
+  post_tool_use:
+    # Trigger shadow commit after these specific tools
+    - tools: [edit, write, bash]
+      script: ./pintire.sh hook
+commands:
+  - name: "@pintire/status"
+    description: Show the sync state of the shadow branch.
+    script: ./pintire.sh status
