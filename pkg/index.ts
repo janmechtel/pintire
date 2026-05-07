@@ -7,24 +7,19 @@ import path from "node:path";
  */
 export default function (pi: ExtensionAPI) {
   const scriptPath = path.join(__dirname, "pintire.sh");
+  let lastPrompt = "Shadow commit after tool use";
 
   // Hook: before_agent_start -> capture prompt
   pi.on("before_agent_start", async (event) => {
-    try {
-      // Escape prompt for shell
-      const safePrompt = event.prompt.replace(/'/g, "'\\''");
-      execSync(`"${scriptPath}" save_prompt '${safePrompt}'`, {
-        cwd: process.cwd(),
-      });
-    } catch (e) {
-      console.error("Pintire (save_prompt) failed:", e);
-    }
+    lastPrompt = event.prompt;
   });
 
   // Hook: agent_end -> capture state after all tools for this prompt are done
   pi.on("agent_end", async () => {
     try {
-      execSync(`"${scriptPath}" hook`, {
+      // Escape prompt for shell
+      const safePrompt = lastPrompt.replace(/'/g, "'\\''");
+      execSync(`"${scriptPath}" hook '${safePrompt}'`, {
         cwd: process.cwd(),
       });
     } catch (e) {
@@ -32,19 +27,17 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  // Command: @pintire/status
-  pi.registerCommand("pintire-status", {
-    description: "Show the sync state of the shadow branch.",
-    handler: async (_args, ctx) => {
+  // Also hook into tool execution for more immediate feedback
+  pi.on("tool_execution_end", async (event) => {
+    if (["edit", "write", "bash"].includes(event.toolName)) {
       try {
-        const output = execSync(`"${scriptPath}" status`, {
+        const safePrompt = lastPrompt.replace(/'/g, "'\\''");
+        execSync(`"${scriptPath}" hook '${safePrompt}'`, {
           cwd: process.cwd(),
-          encoding: "utf-8",
         });
-        ctx.ui.notify(output, "info");
       } catch (e) {
-        ctx.ui.notify("Pintire status failed", "error");
+        // Silent failure during tool execution to avoid disrupting the agent
       }
-    },
+    }
   });
 }

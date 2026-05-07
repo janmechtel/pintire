@@ -1,12 +1,6 @@
 #!/bin/bash
 set -e
 
-# State management
-EXTENSION_DIR="$(cd "$(dirname "$0")" && pwd)"
-STATE_DIR="$EXTENSION_DIR/state"
-mkdir -p "$STATE_DIR"
-PROMPT_CACHE="$STATE_DIR/last_prompt.txt"
-
 # Git context
 CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD)
 BASE_HASH=$(git rev-parse --short HEAD)
@@ -14,24 +8,6 @@ SHADOW_BRANCH="pintire-$CURRENT_BRANCH-$BASE_HASH"
 MAIN_HEAD=$(git rev-parse HEAD)
 
 case "$1" in
-  "save_prompt")
-    # Store the prompt for the duration of the agent session
-    echo "$2" > "$PROMPT_CACHE"
-    ;;
-
-  "status")
-    echo "Pintire Status:"
-    echo "  Current branch: $CURRENT_BRANCH"
-    echo "  Base Commit:    $BASE_HASH"
-    if git rev-parse --verify "$SHADOW_BRANCH" >/dev/null 2>&1; then
-      AHEAD=$(git rev-list --count "$BASE_HASH..$SHADOW_BRANCH")
-      echo "  Shadow branch:  $SHADOW_BRANCH (Ahead of base by $AHEAD commits)"
-      echo "  Latest Shadow Message: $(git log -1 --format=%s "$SHADOW_BRANCH")"
-    else
-      echo "  Shadow branch:  $SHADOW_BRANCH (Not yet created)"
-    fi
-    ;;
-
   "hook")
     # 1. Initialize shadow branch if it doesn't exist
     # It always starts from the current HEAD (BASE_HASH)
@@ -58,7 +34,9 @@ case "$1" in
     SHADOW_TREE=$(git rev-parse "$SHADOW_BRANCH^{tree}")
     
     if [ "$TREE_ID" != "$SHADOW_TREE" ]; then
-      MESSAGE=$(cat "$PROMPT_CACHE" 2>/dev/null || echo "Shadow commit after tool use")
+      # Use provided message as second argument, or default
+      MESSAGE="${2:-Shadow commit after tool use}"
+      
       # Truncate message if it's too long for a commit subject
       SUBJECT=$(echo "$MESSAGE" | head -n 1 | cut -c 1-100)
       

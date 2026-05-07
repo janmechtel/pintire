@@ -1,5 +1,18 @@
-.pi-lens/
-.entire/settings.local.json
-.entire/tmp/
-.entire/metadata/
-.entire/logs/
+# Node
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Pi / Pintire State
+pkg/state/
+.pi/
+
+# Testing
+pkg/tests/tmp-repo/
+
+# Temp files
+plans/
+mock-test.*
+package.json
+package-lock.json
