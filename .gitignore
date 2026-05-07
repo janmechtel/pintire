@@ -1,0 +1,5 @@
+.pi-lens/
+.entire/settings.local.json
+.entire/tmp/
+.entire/metadata/
+.entire/logs/
