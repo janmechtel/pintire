@@ -26,18 +26,4 @@ export default function (pi: ExtensionAPI) {
       console.error("Pintire (agent_end hook) failed:", e);
     }
   });
-
-  // Also hook into tool execution for more immediate feedback
-  pi.on("tool_execution_end", async (event) => {
-    if (["edit", "write", "bash"].includes(event.toolName)) {
-      try {
-        const safePrompt = lastPrompt.replace(/'/g, "'\\''");
-        execSync(`"${scriptPath}" hook '${safePrompt}'`, {
-          cwd: process.cwd(),
-        });
-      } catch (e) {
-        // Silent failure during tool execution to avoid disrupting the agent
-      }
-    }
-  });
 }
