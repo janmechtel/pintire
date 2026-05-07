@@ -3,14 +3,12 @@ set -e
 
 # Git context
 CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD)
-BASE_HASH=$(git rev-parse --short HEAD)
-SHADOW_BRANCH="pintire-$CURRENT_BRANCH-$BASE_HASH"
+SHADOW_BRANCH="pintire-$CURRENT_BRANCH"
 MAIN_HEAD=$(git rev-parse HEAD)
 
 case "$1" in
   "hook")
     # 1. Initialize shadow branch if it doesn't exist
-    # It always starts from the current HEAD (BASE_HASH)
     if ! git rev-parse --verify "$SHADOW_BRANCH" >/dev/null 2>&1; then
       git update-ref "refs/heads/$SHADOW_BRANCH" "$MAIN_HEAD"
     fi
@@ -25,7 +23,6 @@ case "$1" in
     fi
     
     # Stage all changes (dirty state) into the temp index
-    # We use -A to capture deleted files, new files, and modified files
     git add -A
     
     # 3. Create shadow commit if there are changes compared to shadow branch HEAD
@@ -36,12 +33,24 @@ case "$1" in
     if [ "$TREE_ID" != "$SHADOW_TREE" ]; then
       # Use provided message as second argument, or default
       MESSAGE="${2:-Shadow commit after tool use}"
-      
-      # Truncate message if it's too long for a commit subject
       SUBJECT=$(echo "$MESSAGE" | head -n 1 | cut -c 1-100)
       
-      # Use commit-tree to create a commit object without affecting the current branch
-      COMMIT_ID=$(echo "$SUBJECT" | git commit-tree "$TREE_ID" -p "$PARENT_ID")
+      # Determine parents logic:
+      # 1. If MAIN_HEAD is a descendant of PARENT_ID (user merged or committed AI work), 
+      #    we should follow MAIN_HEAD.
+      # 2. If PARENT_ID is a descendant of MAIN_HEAD (normal case), 
+      #    we should follow PARENT_ID.
+      # 3. If they have diverged, we merge them, prioritizing MAIN_HEAD as first parent.
+      
+      if git merge-base --is-ancestor "$PARENT_ID" "$MAIN_HEAD"; then
+        PARENTS="-p $MAIN_HEAD"
+      elif git merge-base --is-ancestor "$MAIN_HEAD" "$PARENT_ID"; then
+        PARENTS="-p $PARENT_ID"
+      else
+        PARENTS="-p $MAIN_HEAD -p $PARENT_ID"
+      fi
+
+      COMMIT_ID=$(echo "$SUBJECT" | git commit-tree "$TREE_ID" $PARENTS)
       
       # Update the shadow branch reference
       git update-ref "refs/heads/$SHADOW_BRANCH" "$COMMIT_ID"

@@ -4,7 +4,7 @@ Pintire is a Pi extension that automatically captures every "vibe" into a shadow
 
 ## Features
 - **Auto-Shadow**: Every time Pi uses a tool (`edit`, `write`, `bash`), Pintire creates a commit on a shadow branch.
-- **Context-Preserving**: The shadow branch is named `pintire-<branch>-<base-hash>`. This means if you manually commit and start a new vibe session, a new shadow branch is created, keeping your histories distinct.
+- **Context-Preserving**: The shadow branch is named `pintire-<branch>`. If you manually commit on your main branch, Pintire automatically merges your new commit into the shadow history on the next tool use, keeping the vibe history continuous.
 - **Zero Interference**: Pintire uses a temporary Git index. It **never** touches your working directory, your staged changes, or your current branch's HEAD.
 - **Intent-Linked**: The commit messages on the shadow branch are automatically set to your latest prompt.
 
@@ -15,11 +15,11 @@ Once installed, it works in the background. You can check the status with:
 
 ### Viewing History
 To see what Pi has been doing:
-`git log pintire-main-abc1234 --oneline` (replace with your actual shadow branch name)
+`git log pintire-main --oneline --graph` (replace with your actual shadow branch name)
 
 ### Merging Back
 If you like what Pi did and want to fast-forward your main branch to the latest shadow state:
-`git merge pintire-<branch>-<hash>`
+`git merge pintire-main`
 
 ## How it works
 Pintire hooks into `post_tool_use`. It stages all dirty files into a temporary index file, writes a Git tree, and uses `git commit-tree` to append a new commit to the shadow branch.
