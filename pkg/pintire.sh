@@ -40,8 +40,30 @@ case "$1" in
       # Truncate message if it's too long for a commit subject
       SUBJECT=$(echo "$MESSAGE" | head -n 1 | cut -c 1-100)
       
+<<<<<<< HEAD
       # Use commit-tree to create a commit object without affecting the current branch
       COMMIT_ID=$(echo "$SUBJECT" | git commit-tree "$TREE_ID" -p "$PARENT_ID")
+=======
+      # Determine parents
+      # Default: extend shadow branch history
+      PARENTS="-p $PARENT_ID"
+      
+      # If MAIN_HEAD is not an ancestor of PARENT_ID, it means the real branch has moved.
+      if ! git merge-base --is-ancestor "$MAIN_HEAD" "$PARENT_ID"; then
+        # Check the inverse: has the shadow branch moved past the real branch?
+        # If it has, we just keep extending PARENT_ID.
+        # If not, we merge MAIN_HEAD in.
+        if ! git merge-base --is-ancestor "$PARENT_ID" "$MAIN_HEAD"; then
+           # Diverged: Merge both
+           PARENTS="-p $PARENT_ID -p $MAIN_HEAD"
+        else
+           # Real branch is ahead of shadow branch (initial state or manual commit)
+           PARENTS="-p $MAIN_HEAD -p $PARENT_ID"
+        fi
+      fi
+
+      COMMIT_ID=$(echo "$SUBJECT" | git commit-tree "$TREE_ID" $PARENTS)
+>>>>>>> 7bd9f02 (/tmp/pi-clipboard-31d3166c-beb2-4955-90f3-844fd9ba83a3.png yeah it looks pretty nice, but I don't un)
       
       # Update the shadow branch reference
       git update-ref "refs/heads/$SHADOW_BRANCH" "$COMMIT_ID"
