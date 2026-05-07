@@ -15,11 +15,11 @@ Once installed, it works in the background. You can check the status with:
 
 ### Viewing History
 To see what Pi has been doing:
-`git log pintire-main-abc1234 --oneline` (replace with your actual shadow branch name)
+`git log pintire-main --oneline --graph` (replace with your actual shadow branch name)
 
 ### Merging Back
 If you like what Pi did and want to fast-forward your main branch to the latest shadow state:
-`git merge pintire-<branch>-<hash>`
+`git merge pintire-main`
 
 ## How it works
 Pintire hooks into `post_tool_use`. It stages all dirty files into a temporary index file, writes a Git tree, and uses `git commit-tree` to append a new commit to the shadow branch.
