@@ -147,8 +147,18 @@ async function runTest() {
     console.log(`[Event] ${event.type}`);
   });
 
+<<<<<<< HEAD
   console.log("\n1. Testing Shadow Branch Creation...");
   nextToolCall = { name: "write", arguments: { path: "test.txt", content: "hello world" } };
+=======
+  console.log("\n2. Manual promotion of AI work to main branch...");
+  // First, stage and commit the AI work on main (dirty promote)
+  execSync("git add .", { cwd: TEST_DIR });
+  execSync('git commit -m "Manual commit (incorporating AI work 1-3)"', { cwd: TEST_DIR });
+  
+  // Now merge the shadow branch to link histories and avoid future diamonds
+  execSync("git merge pintire-main -m 'Link AI history'", { cwd: TEST_DIR });
+>>>>>>> 9a3c123 (still the same somehow :/)
   
   process.env.PI_PROMPT = "Test prompt 1";
   await session.prompt("Do write");
