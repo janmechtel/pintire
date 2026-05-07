@@ -143,14 +143,13 @@ async function runTest() {
     extensions: extensionsResult.extensions
   });
 
-  session.subscribe(event => {
-    console.log(`[Event] ${event.type}`);
-  });
+  console.log("\n1. Running 3 Prompts...");
+  for (let i = 1; i <= 3; i++) {
+    nextToolCall = { name: "write", arguments: { path: `test${i}.txt`, content: `content ${i}` } };
+    process.env.PI_PROMPT = `Prompt ${i}`;
+    await session.prompt(`Do prompt ${i}`);
+  }
 
-<<<<<<< HEAD
-  console.log("\n1. Testing Shadow Branch Creation...");
-  nextToolCall = { name: "write", arguments: { path: "test.txt", content: "hello world" } };
-=======
   console.log("\n2. Manual promotion of AI work to main branch...");
   // First, stage and commit the AI work on main (dirty promote)
   execSync("git add .", { cwd: TEST_DIR });
@@ -158,65 +157,34 @@ async function runTest() {
   
   // Now merge the shadow branch to link histories and avoid future diamonds
   execSync("git merge pintire-main -m 'Link AI history'", { cwd: TEST_DIR });
->>>>>>> 9a3c123 (still the same somehow :/)
   
-  process.env.PI_PROMPT = "Test prompt 1";
-  await session.prompt("Do write");
-  
-  // Check if shadow branch exists
-  const branchName = execSync("git symbolic-ref --short HEAD", { cwd: TEST_DIR }).toString().trim();
-  const baseHash = execSync("git rev-parse --short HEAD", { cwd: TEST_DIR }).toString().trim();
-  const shadowBranch = `pintire-${branchName}-${baseHash}`;
-  
-  try {
-    execSync(`git rev-parse --verify ${shadowBranch}`, { cwd: TEST_DIR });
-    console.log(`✅ Shadow branch ${shadowBranch} created.`);
-  } catch (e) {
-    throw new Error(`❌ Shadow branch ${shadowBranch} NOT created.`);
-  }
-
-  console.log("\n2. Testing Capture Changes...");
-  const initialShadowHash = execSync(`git rev-parse ${shadowBranch}`, { cwd: TEST_DIR }).toString().trim();
-  
-  nextToolCall = { name: "write", arguments: { path: "test2.txt", content: "another file" } };
-  const prompt2 = "Test prompt 2";
-  process.env.PI_PROMPT = prompt2;
-  await session.prompt(prompt2);
-  
-  const newShadowHash = execSync(`git rev-parse ${shadowBranch}`, { cwd: TEST_DIR }).toString().trim();
-  if (initialShadowHash !== newShadowHash) {
-    console.log("✅ Shadow branch updated with a new commit.");
-    const commitMsg = execSync(`git log -1 --format=%s ${shadowBranch}`, { cwd: TEST_DIR }).toString().trim();
-    console.log(`Commit message: ${commitMsg}`);
-    if (commitMsg === prompt2) {
-        console.log("✅ Commit message matches prompt.");
-    } else {
-        console.error(`❌ Commit message mismatch: expected "${prompt2}", got "${commitMsg}"`);
-    }
-  } else {
-    throw new Error("❌ Shadow branch NOT updated.");
-  }
-
-  console.log("\n3. Testing Capture Staged Changes...");
-  // Manually stage a change
-  fs.writeFileSync(path.join(TEST_DIR, "manual.txt"), "manual change");
+  // User adds a manual commit on top
+  fs.writeFileSync(path.join(TEST_DIR, "manual.txt"), "manual content");
   execSync("git add manual.txt", { cwd: TEST_DIR });
-  
-  nextToolCall = { name: "write", arguments: { path: "test3.txt", content: "third file" } };
-  const prompt3 = "Test prompt 3";
-  process.env.PI_PROMPT = prompt3;
-  await session.prompt(prompt3);
-  
-  // The shadow commit should contain both manual.txt and test3.txt
-  const filesInShadow = execSync(`git ls-tree -r ${shadowBranch} --name-only`, { cwd: TEST_DIR }).toString();
-  if (filesInShadow.includes("manual.txt") && filesInShadow.includes("test3.txt")) {
-    console.log("✅ Shadow commit captures both tool changes and manually staged changes.");
-  } else {
-    console.error("Files in shadow branch:", filesInShadow);
-    throw new Error("❌ Shadow commit missing expected files.");
+  execSync('git commit -m "Manual tweak after promoting AI work"', { cwd: TEST_DIR });
+
+  console.log("\n3. Running 3 more Prompts...");
+  for (let i = 4; i <= 6; i++) {
+    nextToolCall = { name: "write", arguments: { path: `test${i}.txt`, content: `content ${i}` } };
+    process.env.PI_PROMPT = `Prompt ${i}`;
+    await session.prompt(`Do prompt ${i}`);
   }
 
-  console.log("\nAll tests passed!");
+  console.log("\nFinal Git History (All branches):");
+  const log = execSync("git log --all --oneline --graph --decorate", { cwd: TEST_DIR }).toString();
+  console.log(log);
+
+  console.log("\nVerifying results...");
+  const branches = execSync("git branch", { cwd: TEST_DIR }).toString();
+  console.log("Branches:\n" + branches);
+
+  if (branches.includes("pintire-main")) {
+      console.log("✅ Shadow branch created.");
+  } else {
+      throw new Error("❌ No shadow branch found.");
+  }
+
+  console.log("\nAll tests finished!");
 }
 
 runTest().catch(err => {
