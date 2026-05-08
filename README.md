@@ -1,6 +1,8 @@
 # Pintire (Pi + Entire)
 
-Pintire is a Pi extension that automatically captures every "vibe" into a shadow Git branch. It behaves like a lightweight, local-only version of Entire.io.
+Pintire is a Pi extension inspired by Entire.io that automatically captures every "vibe" into a shadow Git branch. It behaves like a lightweight, local-first, Git-native version of that idea.
+
+Built to be public, forkable, and easy to understand.
 
 ## Features
 - **Auto-Shadow**: Every time Pi uses a tool (`edit`, `write`, `bash`), Pintire creates a commit on a shadow branch.
@@ -23,3 +25,6 @@ If you like what Pi did and want to fast-forward your main branch to the latest 
 
 ## How it works
 Pintire hooks into `post_tool_use`. It stages all dirty files into a temporary index file, writes a Git tree, and uses `git commit-tree` to append a new commit to the shadow branch.
+
+## License
+MIT — see [LICENSE](./LICENSE).
