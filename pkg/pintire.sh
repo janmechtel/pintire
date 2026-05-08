@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Bail silently if not in a valid git repo (e.g. stale/deleted worktree)
+git rev-parse --git-dir >/dev/null 2>&1 || exit 0
+
 # Git context
 CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD)
 SHADOW_BRANCH="pintire-$CURRENT_BRANCH"
@@ -15,13 +18,18 @@ case "$1" in
 
     # 2. Prepare temporary index to capture dirty state
     TMP_INDEX=$(mktemp)
-    export GIT_INDEX_FILE="$TMP_INDEX"
-    
-    # Initialize temp index from current real index to include user-staged changes
-    if [ -f .git/index ]; then
-      cp .git/index "$TMP_INDEX"
+    # Important: Git refuses to use a 0-byte file as an index.
+    # We must either copy a valid index or ensure the file doesn't exist so Git can initialize it.
+    rm "$TMP_INDEX"
+
+    REAL_INDEX=$(git rev-parse --git-path index)
+    if [ -f "$REAL_INDEX" ]; then
+      cp "$REAL_INDEX" "$TMP_INDEX"
     fi
-    
+
+    export GIT_INDEX_FILE="$TMP_INDEX"
+    trap 'rm -f "$TMP_INDEX"' EXIT
+
     # Stage all changes (dirty state) into the temp index
     git add -A
     
@@ -55,7 +63,5 @@ case "$1" in
       # Update the shadow branch reference
       git update-ref "refs/heads/$SHADOW_BRANCH" "$COMMIT_ID"
     fi
-    
-    rm -f "$TMP_INDEX"
     ;;
 esac

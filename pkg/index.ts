@@ -22,8 +22,8 @@ export default function (pi: ExtensionAPI) {
       execSync(`"${scriptPath}" hook '${safePrompt}'`, {
         cwd: process.cwd(),
       });
-    } catch (e) {
-      console.error("Pintire (agent_end hook) failed:", e);
+    } catch {
+      // not a git repo or stale worktree — skip silently
     }
   });
 }
